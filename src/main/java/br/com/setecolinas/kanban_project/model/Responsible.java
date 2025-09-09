@@ -25,6 +25,10 @@ public class Responsible {
     @ManyToMany(mappedBy = "responsibles")
     private Set<Project> projects = new HashSet<>();
 
+    @ManyToOne
+    @JoinColumn(name = "secretaria_id")
+    private Secretaria secretaria;
+
     public Responsible() {}
 
     public Responsible(String name, String email, String role) {
@@ -41,6 +45,8 @@ public class Responsible {
     public String getRole() { return role; }
     public void setRole(String r) { role = r; }
     public Set<Project> getProjects() { return projects; }
+    public Secretaria getSecretaria() { return secretaria; }
+    public void setSecretaria(Secretaria secretaria) { this.secretaria = secretaria; }
 
     @Override
     public boolean equals(Object o) {

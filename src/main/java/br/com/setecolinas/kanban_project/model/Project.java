@@ -45,7 +45,6 @@ public class Project {
 
     public Project(String name) { this.name = name; }
 
-    // getters/setters ...
     public Long getId() { return id; }
     public String getName() { return name; }
     public void setName(String n) { name = n; }
