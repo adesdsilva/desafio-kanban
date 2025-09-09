@@ -8,6 +8,8 @@ import br.com.setecolinas.kanban_project.model.Secretaria;
 import br.com.setecolinas.kanban_project.repository.SecretariaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,12 +33,13 @@ public class SecretariaService {
     }
 
     @Transactional(readOnly = true)
-    public List<SecretariaResponseDTO> findAll() {
-        log.info("[SecretariaService] START findAll");
-        var out = repo.findAll().stream().map(SecretariaMapper::toResponse).collect(Collectors.toList());
-        log.info("[SecretariaService] END findAll count={}", out.size());
-        return out;
+    public Page<SecretariaResponseDTO> findAll(Pageable pageable) {
+        log.info("[SecretariaService] START findAll pageable={}", pageable);
+        var page = repo.findAll(pageable).map(SecretariaMapper::toResponse);
+        log.info("[SecretariaService] END findAll size={}", page.getSize());
+        return page;
     }
+
 
     @Transactional(readOnly = true)
     public SecretariaResponseDTO findById(Long id) {

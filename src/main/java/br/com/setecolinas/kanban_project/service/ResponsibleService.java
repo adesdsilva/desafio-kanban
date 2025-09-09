@@ -11,11 +11,10 @@ import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
 import br.com.setecolinas.kanban_project.repository.SecretariaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class ResponsibleService {
@@ -44,12 +43,16 @@ public class ResponsibleService {
     }
 
     @Transactional(readOnly = true)
-    public List<ResponsibleResponseDTO> findAll() {
-        log.info("[ResponsibleService] START findAll");
-        var out = repo.findAll().stream().map(ResponsibleMapper::toResponse).collect(Collectors.toList());
-        log.info("[ResponsibleService] END findAll count={}", out.size());
+    public Page<ResponsibleResponseDTO> findAll(String search, Pageable pageable) {
+        log.info("[ResponsibleService] START findAll search={} pageable={}", search, pageable);
+        Page<Responsible> page = (search == null || search.isBlank())
+                ? repo.findAll(pageable)
+                : repo.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search, search, pageable);
+        var out = page.map(ResponsibleMapper::toResponse);
+        log.info("[ResponsibleService] END findAll size={}", out.getSize());
         return out;
     }
+
 
     @Transactional(readOnly = true)
     public ResponsibleResponseDTO findById(Long id) {
