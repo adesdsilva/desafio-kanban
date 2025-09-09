@@ -3,6 +3,25 @@ spring:
     url: jdbc:postgresql://db:5432/kanban
     username: postgres
     password: admin
+    driver-class-name: org.postgresql.Driver
+
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: update      # atualiza a estrutura do banco com base nas entidades
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true     # formata o SQL gerado
+    show-sql: true           # mostra o SQL no console
+
+  sql:
+    init:
+      mode: always            # garante que scripts SQL sejam executados se houver
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG            # mostra SQL gerado pelo Hibernate
+        type:
+          descriptor: TRACE   # mostra detalhes dos tipos de dados
