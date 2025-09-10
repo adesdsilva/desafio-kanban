@@ -1,0 +1,57 @@
+# --- Types ---
+
+type Project {
+    id: ID!
+    name: String!
+    status: String
+    plannedStart: String
+    plannedEnd: String
+    actualStart: String
+    actualEnd: String
+    daysDelay: Int
+    percentTimeRemaining: Float
+    responsibles: [Responsible!]
+}
+
+type Responsible {
+    id: ID!
+    name: String!
+}
+
+# --- Input / DTOs ---
+
+input ProjectRequestDTO {
+    name: String!
+    plannedStart: String
+    plannedEnd: String
+    responsibleIds: [ID!]
+}
+
+type ProjectResponseDTO {
+    id: ID!
+    name: String!
+    status: String
+    plannedStart: String
+    plannedEnd: String
+    actualStart: String
+    actualEnd: String
+    daysDelay: Int
+    percentTimeRemaining: Float
+    responsibles: [Responsible!]
+}
+
+# --- Queries ---
+
+type Query {
+    projects: [ProjectResponseDTO!]!
+    project(id: ID!): ProjectResponseDTO
+}
+
+# --- Mutations ---
+
+type Mutation {
+    createProject(request: ProjectRequestDTO!): ProjectResponseDTO
+    updateProject(id: ID!, request: ProjectRequestDTO!): ProjectResponseDTO
+    deleteProject(id: ID!): Boolean
+    transitionProject(id: ID!, target: String!): ProjectResponseDTO
+}

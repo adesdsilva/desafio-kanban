@@ -11,6 +11,7 @@ import br.com.setecolinas.kanban_project.repository.ProjectRepository;
 import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +30,14 @@ public class ProjectService {
         this.repo = repo; this.respRepo = respRepo;
     }
 
+    @Transactional(readOnly = true)
+    public ProjectResponseDTO findById(Long id) {
+        return repo.findById(id)
+                .map(ProjectMapper::toResponse)
+                .orElseThrow(() -> new NotFoundException("Project not found"));
+    }
+
+
     @Transactional
     public ProjectResponseDTO create(ProjectRequestDTO dto){
         log.info("[ProjectService] START create - name={}", dto.name());
@@ -44,6 +53,7 @@ public class ProjectService {
         return ProjectMapper.toResponse(saved);
     }
 
+    @Cacheable("projects")
     @Transactional(readOnly = true)
     public List<ProjectResponseDTO> findAll(){
         log.info("[ProjectService] START findAll");

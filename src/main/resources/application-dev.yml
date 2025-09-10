@@ -4,6 +4,12 @@ spring:
     username: postgres
     password: admin
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20        # número máximo de conexões simultâneas
+      minimum-idle: 5              # conexões mínimas ociosas
+      idle-timeout: 30000          # tempo máximo que a conexão pode ficar ociosa
+      max-lifetime: 1800000        # tempo máximo de vida da conexão
+      connection-timeout: 30000    # timeout de aquisição da conexão
 
   jpa:
     hibernate:
