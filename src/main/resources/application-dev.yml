@@ -1,13 +1,13 @@
 spring:
   datasource:
-    url: jdbc:postgresql://db:5432/kanban
+    url: jdbc:postgresql://localhost:5432/kanban
     username: postgres
     password: admin
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update      # atualiza a estrutura do banco com base nas entidades
+      ddl-auto: create
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect

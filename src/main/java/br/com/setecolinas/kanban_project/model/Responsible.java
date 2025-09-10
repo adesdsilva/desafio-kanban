@@ -5,20 +5,20 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-@Entity
-@Table(
-        name = "responsible",
-        uniqueConstraints = @UniqueConstraint(columnNames = "email"),
-        indexes = {
-                @Index(name = "idx_responsible_email", columnList = "email"),
-                @Index(name = "idx_responsible_name", columnList = "name")
-        }
-)
-public class Responsible {
+    @Entity
+    @Table(
+            name = "responsible",
+            uniqueConstraints = @UniqueConstraint(columnNames = "email"),
+            indexes = {
+                    @Index(name = "idx_responsible_email", columnList = "email"),
+                    @Index(name = "idx_responsible_name", columnList = "name")
+            }
+    )
+    public class Responsible {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+        @Id
+        @GeneratedValue(strategy = GenerationType.IDENTITY)
+        private Long id;
 
     @Column(nullable = false)
     private String name;
