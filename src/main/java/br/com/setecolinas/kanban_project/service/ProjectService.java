@@ -11,6 +11,7 @@ import br.com.setecolinas.kanban_project.repository.ProjectRepository;
 import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.function.Supplier;
 
 @Service
 public class ProjectService {
@@ -34,85 +36,124 @@ public class ProjectService {
         this.respRepo = respRepo;
     }
 
+    // ====== Utilitário para MDC + userId ======
+    private <T> T withUserContext(Supplier<T> action) {
+        MDC.put("userId", getCurrentUserId());
+        try {
+            return action.get();
+        } finally {
+            MDC.remove("userId");
+        }
+    }
+
+    private void withUserContext(Runnable action) {
+        MDC.put("userId", getCurrentUserId());
+        try {
+            action.run();
+        } finally {
+            MDC.remove("userId");
+        }
+    }
+
+    private String getCurrentUserId() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return "system";
+        final var principal = auth.getPrincipal();
+        if (principal instanceof String) return (String) principal;
+        return auth.getName();
+    }
+
+    // ====== CRUD ======
     @Transactional(readOnly = true)
     public ProjectResponseDTO findById(Long id) {
-        return repo.findById(id)
-                .map(ProjectMapper::toResponse)
-                .orElseThrow(() -> new NotFoundException("Project not found"));
+        return withUserContext(() -> {
+            log.info("action=findById.started id={}", id);
+            ProjectResponseDTO dto = repo.findById(id)
+                    .map(ProjectMapper::toResponse)
+                    .orElseThrow(() -> new NotFoundException("Project not found"));
+            log.info("action=findById.finished id={}", id);
+            return dto;
+        });
     }
 
     @Transactional
     @CacheEvict(value = "projects", allEntries = true)
     public ProjectResponseDTO create(ProjectRequestDTO dto) {
-        log.info("project.create.started name={}", dto.name());
+        return withUserContext(() -> {
+            log.info("action=create.started name={}", dto.name());
 
-        Project p = new Project(dto.name());
-        ProjectMapper.apply(p, dto);
+            Project p = new Project(dto.name());
+            ProjectMapper.apply(p, dto);
 
-        if (dto.responsibleIds() != null) {
-            dto.responsibleIds().forEach(id ->
-                    respRepo.findById(id).ifPresent(p.getResponsibles()::add));
-        }
+            if (dto.responsibleIds() != null) {
+                dto.responsibleIds().forEach(id ->
+                        respRepo.findById(id).ifPresent(p.getResponsibles()::add));
+            }
 
-        recalc(p);
-        Project saved = repo.save(p);
+            recalc(p);
+            Project saved = repo.save(p);
 
-        log.info("project.create.finished id={}", saved.getId());
-        return ProjectMapper.toResponse(saved);
+            log.info("action=create.finished id={}", saved.getId());
+            return ProjectMapper.toResponse(saved);
+        });
     }
 
     @Cacheable("projects")
     @Transactional(readOnly = true)
     public Page<ProjectResponseDTO> findAll(Pageable pageable) {
-        log.info("project.findAll.started page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
+        return withUserContext(() -> {
+            log.info("action=findAll.started page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
 
-        Page<ProjectResponseDTO> out = repo.findAll(pageable)
-                .map(ProjectMapper::toResponse);
+            Page<ProjectResponseDTO> out = repo.findAll(pageable)
+                    .map(ProjectMapper::toResponse);
 
-        log.info("project.findAll.finished totalElements={} totalPages={}",
-                out.getTotalElements(), out.getTotalPages());
-
-        return out;
+            log.info("action=findAll.finished totalElements={} totalPages={}",
+                    out.getTotalElements(), out.getTotalPages());
+            return out;
+        });
     }
 
     @Transactional
     @CacheEvict(value = "projects", allEntries = true)
     public ProjectResponseDTO update(Long id, ProjectRequestDTO dto) {
-        log.info("project.update.started id={}", id);
+        return withUserContext(() -> {
+            log.info("action=update.started id={}", id);
 
-        Project p = repo.findById(id)
-                .orElseThrow(() -> new NotFoundException("Project not found"));
+            Project p = repo.findById(id)
+                    .orElseThrow(() -> new NotFoundException("Project not found"));
 
-        ProjectMapper.apply(p, dto);
+            ProjectMapper.apply(p, dto);
 
-        if (dto.responsibleIds() != null) {
-            p.getResponsibles().clear();
-            dto.responsibleIds().forEach(rid ->
-                    respRepo.findById(rid).ifPresent(p.getResponsibles()::add));
-        }
+            if (dto.responsibleIds() != null) {
+                p.getResponsibles().clear();
+                dto.responsibleIds().forEach(rid ->
+                        respRepo.findById(rid).ifPresent(p.getResponsibles()::add));
+            }
 
-        recalc(p);
-        Project saved = repo.save(p);
+            recalc(p);
+            Project saved = repo.save(p);
 
-        log.info("project.update.finished id={}", id);
-        return ProjectMapper.toResponse(saved);
+            log.info("action=update.finished id={}", id);
+            return ProjectMapper.toResponse(saved);
+        });
     }
 
     @Transactional
     @CacheEvict(value = "projects", allEntries = true)
     public void delete(Long id) {
-        log.info("project.delete.started id={}", id);
+        withUserContext(() -> {
+            log.info("action=delete.started id={}", id);
 
-        if (!repo.existsById(id)) {
-            throw new NotFoundException("Project not found");
-        }
+            if (!repo.existsById(id)) {
+                throw new NotFoundException("Project not found");
+            }
 
-        repo.deleteById(id);
-
-        log.info("project.delete.finished id={}", id);
+            repo.deleteById(id);
+            log.info("action=delete.finished id={}", id);
+        });
     }
 
-    // central: recalc metrics and status (applies business rules)
+    // ====== Lógica de negócio ======
     public void recalc(Project p) {
         LocalDate today = LocalDate.now();
         p.setDaysDelay(calculateDaysDelay(p, today));
@@ -124,7 +165,6 @@ public class ProjectService {
         if (p.getStatus() == ProjectStatus.CONCLUIDO) return 0;
         if (p.getPlannedEnd() == null) return 0;
         if (p.getActualEnd() != null) return 0;
-
         if (p.getPlannedEnd().isBefore(today)) {
             return (int) ChronoUnit.DAYS.between(p.getPlannedEnd(), today);
         }
@@ -167,33 +207,35 @@ public class ProjectService {
     @Transactional
     @CacheEvict(value = "projects", allEntries = true)
     public ProjectResponseDTO transition(Long id, ProjectStatus target) {
-        log.info("project.transition.started id={} target={}", id, target);
+        return withUserContext(() -> {
+            log.info("action=transition.started id={} target={}", id, target);
 
-        Project p = repo.findById(id)
-                .orElseThrow(() -> new NotFoundException("Project not found"));
+            Project p = repo.findById(id)
+                    .orElseThrow(() -> new NotFoundException("Project not found"));
 
-        LocalDate today = LocalDate.now();
-        ProjectStatus current = recalcAndReturn(p);
+            LocalDate today = LocalDate.now();
+            ProjectStatus current = recalcAndReturn(p);
 
-        if (current == ProjectStatus.A_INICIAR && target == ProjectStatus.EM_ANDAMENTO) {
-            p.setActualStart(today);
-        } else if (current == ProjectStatus.A_INICIAR && target == ProjectStatus.ATRASADO) {
-            if (today.isBefore(p.getPlannedStart())) {
-                throw new BusinessException("Cannot mark as delayed before planned start");
+            if (current == ProjectStatus.A_INICIAR && target == ProjectStatus.EM_ANDAMENTO) {
+                p.setActualStart(today);
+            } else if (current == ProjectStatus.A_INICIAR && target == ProjectStatus.ATRASADO) {
+                if (today.isBefore(p.getPlannedStart())) {
+                    throw new BusinessException("Cannot mark as delayed before planned start");
+                }
+            } else if (target == ProjectStatus.CONCLUIDO) {
+                p.setActualEnd(today);
+            } else if (current == ProjectStatus.EM_ANDAMENTO && target == ProjectStatus.A_INICIAR) {
+                p.setActualStart(null);
+            } else {
+                throw new BusinessException("Transition not allowed or requires manual date adjustments");
             }
-        } else if (target == ProjectStatus.CONCLUIDO) {
-            p.setActualEnd(today);
-        } else if (current == ProjectStatus.EM_ANDAMENTO && target == ProjectStatus.A_INICIAR) {
-            p.setActualStart(null);
-        } else {
-            throw new BusinessException("Transition not allowed or requires manual date adjustments");
-        }
 
-        recalc(p);
-        Project saved = repo.save(p);
+            recalc(p);
+            Project saved = repo.save(p);
 
-        log.info("project.transition.finished id={} newStatus={}", id, saved.getStatus());
-        return ProjectMapper.toResponse(saved);
+            log.info("action=transition.finished id={} newStatus={}", id, saved.getStatus());
+            return ProjectMapper.toResponse(saved);
+        });
     }
 
     private ProjectStatus recalcAndReturn(Project p) {

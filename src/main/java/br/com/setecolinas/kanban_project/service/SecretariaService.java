@@ -3,11 +3,11 @@ package br.com.setecolinas.kanban_project.service;
 import br.com.setecolinas.kanban_project.dto.SecretariaRequestDTO;
 import br.com.setecolinas.kanban_project.dto.SecretariaResponseDTO;
 import br.com.setecolinas.kanban_project.exceptions.NotFoundException;
-import br.com.setecolinas.kanban_project.mapper.SecretariaMapper;
 import br.com.setecolinas.kanban_project.model.Secretaria;
 import br.com.setecolinas.kanban_project.repository.SecretariaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -16,61 +16,109 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
 @Service
 public class SecretariaService {
+
     private static final Logger log = LoggerFactory.getLogger(SecretariaService.class);
+
     private final SecretariaRepository repo;
 
-    public SecretariaService(SecretariaRepository repo) { this.repo = repo; }
-
-    @CacheEvict(value = {"secretarias", "secretariasPage"}, allEntries = true)
-    @Transactional
-    public SecretariaResponseDTO create(SecretariaRequestDTO dto) {
-        log.info("[SecretariaService] START create nome={}", dto.nome());
-        Secretaria s = SecretariaMapper.toEntity(dto);
-        Secretaria saved = repo.save(s);
-        log.info("[SecretariaService] END create id={}", saved.getId());
-        return SecretariaMapper.toResponse(saved);
+    public SecretariaService(SecretariaRepository repo) {
+        this.repo = repo;
     }
 
-    @Cacheable(value = "secretariasPage", key = "{#pageable.pageNumber, #pageable.pageSize}")
-    @Transactional(readOnly = true)
-    public Page<SecretariaResponseDTO> findAll(Pageable pageable) {
-        log.info("[SecretariaService] START findAll pageable={}", pageable);
-        var page = repo.findAll(pageable).map(SecretariaMapper::toResponse);
-        log.info("[SecretariaService] END findAll size={}", page.getSize());
-        return page;
+    private <T> T withUserContext(Supplier<T> action) {
+        MDC.put("userId", getCurrentUserId());
+        try {
+            return action.get();
+        } finally {
+            MDC.remove("userId");
+        }
     }
 
-    @Cacheable(value = "secretarias", key = "#id")
+    private void withUserContext(Runnable action) {
+        MDC.put("userId", getCurrentUserId());
+        try {
+            action.run();
+        } finally {
+            MDC.remove("userId");
+        }
+    }
+
+    private String getCurrentUserId() {
+        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null) return "system";
+        Object principal = auth.getPrincipal();
+        if (principal instanceof String) return (String) principal;
+        return auth.getName();
+    }
+
     @Transactional(readOnly = true)
     public SecretariaResponseDTO findById(Long id) {
-        log.info("[SecretariaService] START findById id={}", id);
-        Secretaria s = repo.findById(id).orElseThrow(() -> new NotFoundException("Secretaria não encontrada"));
-        log.info("[SecretariaService] END findById id={}", id);
-        return SecretariaMapper.toResponse(s);
+        return withUserContext(() -> {
+            log.info("action=findById.started id={}", id);
+            Secretaria s = repo.findById(id)
+                    .orElseThrow(() -> new NotFoundException("Secretaria not found"));
+            log.info("action=findById.finished id={}", id);
+            return new SecretariaResponseDTO(s.getId(), s.getNome(), s.getDescricao());
+        });
     }
 
-    @CacheEvict(value = {"secretarias", "secretariasPage"}, allEntries = true)
     @Transactional
+    @CacheEvict(value = "secretarias", allEntries = true)
+    public SecretariaResponseDTO create(SecretariaRequestDTO dto) {
+        return withUserContext(() -> {
+            log.info("action=create.started nome={}", dto.nome());
+            Secretaria s = new Secretaria(dto.nome(), dto.descricao());
+            Secretaria saved = repo.save(s);
+            log.info("action=create.finished id={}", saved.getId());
+            return new SecretariaResponseDTO(saved.getId(), saved.getNome(), saved.getDescricao());
+        });
+    }
+
+    @Cacheable("secretarias")
+    @Transactional(readOnly = true)
+    public Page<SecretariaResponseDTO> findAll(Pageable pageable) {
+        return withUserContext(() -> {
+            log.info("action=findAll.started page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
+
+            Page<SecretariaResponseDTO> out = repo.findAll(pageable)
+                    .map(s -> new SecretariaResponseDTO(s.getId(), s.getNome(), s.getDescricao()));
+
+            log.info("action=findAll.finished totalElements={} totalPages={}",
+                    out.getTotalElements(), out.getTotalPages());
+
+            return out;
+        });
+    }
+
+    @Transactional
+    @CacheEvict(value = "secretarias", allEntries = true)
     public SecretariaResponseDTO update(Long id, SecretariaRequestDTO dto) {
-        log.info("[SecretariaService] START update id={}", id);
-        Secretaria s = repo.findById(id).orElseThrow(() -> new NotFoundException("Secretaria não encontrada"));
-        s.setNome(dto.nome());
-        s.setDescricao(dto.descricao());
-        Secretaria saved = repo.save(s);
-        log.info("[SecretariaService] END update id={}", id);
-        return SecretariaMapper.toResponse(saved);
+        return withUserContext(() -> {
+            log.info("action=update.started id={}", id);
+            Secretaria s = repo.findById(id)
+                    .orElseThrow(() -> new NotFoundException("Secretaria not found"));
+            s.setNome(dto.nome());
+            s.setDescricao(dto.descricao());
+            Secretaria saved = repo.save(s);
+            log.info("action=update.finished id={}", id);
+            return new SecretariaResponseDTO(saved.getId(), saved.getNome(), saved.getDescricao());
+        });
     }
 
-    @CacheEvict(value = {"secretarias", "secretariasPage"}, allEntries = true)
     @Transactional
+    @CacheEvict(value = "secretarias", allEntries = true)
     public void delete(Long id) {
-        log.info("[SecretariaService] START delete id={}", id);
-        if (!repo.existsById(id)) throw new NotFoundException("Secretaria não encontrada");
-        repo.deleteById(id);
-        log.info("[SecretariaService] END delete id={}", id);
+        withUserContext(() -> {
+            log.info("action=delete.started id={}", id);
+            if (!repo.existsById(id)) {
+                throw new NotFoundException("Secretaria not found");
+            }
+            repo.deleteById(id);
+            log.info("action=delete.finished id={}", id);
+        });
     }
 }
