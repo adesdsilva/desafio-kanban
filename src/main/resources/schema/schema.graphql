@@ -1,0 +1,4 @@
+# Raiz do esquema GraphQL
+type Query
+
+type Mutation

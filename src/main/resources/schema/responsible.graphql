@@ -1,0 +1,41 @@
+# --- DTOs / Inputs ---
+
+input ResponsibleRequestDTO {
+    name: String!
+    email: String!
+    role: String
+    secId: ID
+}
+
+type ResponsibleResponseDTO {
+    id: ID!
+    name: String!
+    email: String!
+    role: String
+    secId: ID
+}
+
+type ResponsiblePage {
+    content: [ResponsibleResponseDTO!]!
+    page: Int!
+    size: Int!
+    totalElements: Int!
+    totalPages: Int!
+    first: Boolean!
+    last: Boolean!
+}
+
+# --- Queries ---
+
+extend type Query {
+    responsible(id: ID!): ResponsibleResponseDTO
+    responsibles(search: String, page: Int, size: Int): ResponsiblePage
+}
+
+# --- Mutations ---
+
+extend type Mutation {
+    createResponsible(request: ResponsibleRequestDTO!): ResponsibleResponseDTO
+    updateResponsible(id: ID!, request: ResponsibleRequestDTO!): ResponsibleResponseDTO
+    deleteResponsible(id: ID!): Boolean
+}

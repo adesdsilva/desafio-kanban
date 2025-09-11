@@ -40,16 +40,24 @@ type ProjectResponseDTO {
     responsibles: [Responsible!]
 }
 
-# --- Queries ---
+# --- Page Type ---
 
-type Query {
-    projects: [ProjectResponseDTO!]!
+type ProjectPage {
+    content: [ProjectResponseDTO!]!
+    totalElements: Int!
+    totalPages: Int!
+    pageNumber: Int!
+    pageSize: Int!
+}
+
+# --- Queries & Mutations ---
+
+extend type Query {
+    projects(page: Int, size: Int): ProjectPage!
     project(id: ID!): ProjectResponseDTO
 }
 
-# --- Mutations ---
-
-type Mutation {
+extend type Mutation {
     createProject(request: ProjectRequestDTO!): ProjectResponseDTO
     updateProject(id: ID!, request: ProjectRequestDTO!): ProjectResponseDTO
     deleteProject(id: ID!): Boolean

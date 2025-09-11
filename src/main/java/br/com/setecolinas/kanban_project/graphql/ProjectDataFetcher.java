@@ -2,14 +2,11 @@ package br.com.setecolinas.kanban_project.graphql;
 
 import br.com.setecolinas.kanban_project.dto.ProjectRequestDTO;
 import br.com.setecolinas.kanban_project.dto.ProjectResponseDTO;
-import br.com.setecolinas.kanban_project.service.ProjectService;
 import br.com.setecolinas.kanban_project.model.ProjectStatus;
-import com.netflix.graphql.dgs.DgsComponent;
-import com.netflix.graphql.dgs.DgsMutation;
-import com.netflix.graphql.dgs.DgsQuery;
-import com.netflix.graphql.dgs.InputArgument;
-
-import java.util.List;
+import br.com.setecolinas.kanban_project.service.ProjectService;
+import com.netflix.graphql.dgs.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 @DgsComponent
 public class ProjectDataFetcher {
@@ -23,16 +20,17 @@ public class ProjectDataFetcher {
     // --- Queries ---
 
     @DgsQuery
-    public List<ProjectResponseDTO> projects() {
-        return projectService.findAll();
+    public Page<ProjectResponseDTO> projects(@InputArgument Integer page,
+                                             @InputArgument Integer size) {
+        int p = (page != null) ? page : 0;
+        int s = (size != null) ? size : 10;
+        return projectService.findAll(PageRequest.of(p, s));
     }
+
 
     @DgsQuery
     public ProjectResponseDTO project(@InputArgument Long id) {
-        return projectService.findAll().stream()
-                .filter(p -> p.id().equals(id))
-                .findFirst()
-                .orElse(null);
+        return projectService.findById(id);
     }
 
     // --- Mutations ---
@@ -57,12 +55,7 @@ public class ProjectDataFetcher {
     @DgsMutation
     public ProjectResponseDTO transitionProject(@InputArgument Long id,
                                                 @InputArgument String target) {
-        ProjectStatus targetStatus;
-        try {
-            targetStatus = ProjectStatus.valueOf(target.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid project status: " + target);
-        }
+        ProjectStatus targetStatus = ProjectStatus.valueOf(target.toUpperCase());
         return projectService.transition(id, targetStatus);
     }
 }

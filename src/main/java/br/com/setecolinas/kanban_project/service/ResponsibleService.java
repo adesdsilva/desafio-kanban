@@ -11,6 +11,8 @@ import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
 import br.com.setecolinas.kanban_project.repository.SecretariaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -27,6 +29,7 @@ public class ResponsibleService {
         this.secretariaRepo = secretariaRepo;
     }
 
+    @CacheEvict(value = {"responsibles", "responsiblesPage"}, allEntries = true)
     @Transactional
     public ResponsibleResponseDTO create(ResponsibleRequestDTO dto) {
         log.info("[ResponsibleService] START create email={}", dto.email());
@@ -42,6 +45,7 @@ public class ResponsibleService {
         return ResponsibleMapper.toResponse(saved);
     }
 
+    @Cacheable(value = "responsiblesPage", key = "{#search, #pageable.pageNumber, #pageable.pageSize}")
     @Transactional(readOnly = true)
     public Page<ResponsibleResponseDTO> findAll(String search, Pageable pageable) {
         log.info("[ResponsibleService] START findAll search={} pageable={}", search, pageable);
@@ -53,7 +57,7 @@ public class ResponsibleService {
         return out;
     }
 
-
+    @Cacheable(value = "responsibles", key = "#id")
     @Transactional(readOnly = true)
     public ResponsibleResponseDTO findById(Long id) {
         log.info("[ResponsibleService] START findById id={}", id);
@@ -62,6 +66,7 @@ public class ResponsibleService {
         return ResponsibleMapper.toResponse(r);
     }
 
+    @CacheEvict(value = {"responsibles", "responsiblesPage"}, allEntries = true)
     @Transactional
     public ResponsibleResponseDTO update(Long id, ResponsibleRequestDTO dto) {
         log.info("[ResponsibleService] START update id={}", id);
@@ -82,6 +87,7 @@ public class ResponsibleService {
         return ResponsibleMapper.toResponse(saved);
     }
 
+    @CacheEvict(value = {"responsibles", "responsiblesPage"}, allEntries = true)
     @Transactional
     public void delete(Long id) {
         log.info("[ResponsibleService] START delete id={}", id);

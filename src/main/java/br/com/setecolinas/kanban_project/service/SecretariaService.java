@@ -8,6 +8,8 @@ import br.com.setecolinas.kanban_project.model.Secretaria;
 import br.com.setecolinas.kanban_project.repository.SecretariaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class SecretariaService {
 
     public SecretariaService(SecretariaRepository repo) { this.repo = repo; }
 
+    @CacheEvict(value = {"secretarias", "secretariasPage"}, allEntries = true)
     @Transactional
     public SecretariaResponseDTO create(SecretariaRequestDTO dto) {
         log.info("[SecretariaService] START create nome={}", dto.nome());
@@ -32,6 +35,7 @@ public class SecretariaService {
         return SecretariaMapper.toResponse(saved);
     }
 
+    @Cacheable(value = "secretariasPage", key = "{#pageable.pageNumber, #pageable.pageSize}")
     @Transactional(readOnly = true)
     public Page<SecretariaResponseDTO> findAll(Pageable pageable) {
         log.info("[SecretariaService] START findAll pageable={}", pageable);
@@ -40,7 +44,7 @@ public class SecretariaService {
         return page;
     }
 
-
+    @Cacheable(value = "secretarias", key = "#id")
     @Transactional(readOnly = true)
     public SecretariaResponseDTO findById(Long id) {
         log.info("[SecretariaService] START findById id={}", id);
@@ -49,6 +53,7 @@ public class SecretariaService {
         return SecretariaMapper.toResponse(s);
     }
 
+    @CacheEvict(value = {"secretarias", "secretariasPage"}, allEntries = true)
     @Transactional
     public SecretariaResponseDTO update(Long id, SecretariaRequestDTO dto) {
         log.info("[SecretariaService] START update id={}", id);
@@ -60,6 +65,7 @@ public class SecretariaService {
         return SecretariaMapper.toResponse(saved);
     }
 
+    @CacheEvict(value = {"secretarias", "secretariasPage"}, allEntries = true)
     @Transactional
     public void delete(Long id) {
         log.info("[SecretariaService] START delete id={}", id);
