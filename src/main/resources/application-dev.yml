@@ -31,3 +31,10 @@ logging:
         SQL: DEBUG            # mostra SQL gerado pelo Hibernate
         type:
           descriptor: TRACE   # mostra detalhes dos tipos de dados
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+

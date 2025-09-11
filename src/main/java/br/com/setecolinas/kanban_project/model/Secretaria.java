@@ -1,6 +1,8 @@
 package br.com.setecolinas.kanban_project.model;
 
 import jakarta.persistence.*;
+
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -26,6 +28,11 @@ public class Secretaria {
     @OneToMany(mappedBy = "secretaria", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Responsible> responsaveis = new HashSet<>();
 
+    @Column(updatable = false)
+    private Instant createdAt;
+
+    private Instant updatedAt;
+
     public Secretaria() {}
 
     public Secretaria(String nome, String descricao) {
@@ -41,6 +48,17 @@ public class Secretaria {
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public Set<Responsible> getResponsaveis() { return responsaveis; }
     public void setResponsaveis(Set<Responsible> responsaveis) { this.responsaveis = responsaveis; }
+
+    @PrePersist
+    void prePersist() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = Instant.now();
+    }
 
     @Override
     public boolean equals(Object o) {

@@ -1,24 +1,26 @@
 package br.com.setecolinas.kanban_project.model;
 
 import jakarta.persistence.*;
+
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-    @Entity
-    @Table(
-            name = "responsible",
-            uniqueConstraints = @UniqueConstraint(columnNames = "email"),
-            indexes = {
-                    @Index(name = "idx_responsible_email", columnList = "email"),
-                    @Index(name = "idx_responsible_name", columnList = "name")
-            }
-    )
-    public class Responsible {
+@Entity
+@Table(
+        name = "responsible",
+        uniqueConstraints = @UniqueConstraint(columnNames = "email"),
+        indexes = {
+                @Index(name = "idx_responsible_email", columnList = "email"),
+                @Index(name = "idx_responsible_name", columnList = "name")
+        }
+)
+public class Responsible {
 
-        @Id
-        @GeneratedValue(strategy = GenerationType.IDENTITY)
-        private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @Column(nullable = false)
     private String name;
@@ -34,6 +36,10 @@ import java.util.Set;
     @ManyToOne
     @JoinColumn(name = "secretaria_id")
     private Secretaria secretaria;
+
+    @Column(updatable = false) private Instant createdAt;
+
+    private Instant updatedAt;
 
     public Responsible() {}
 
@@ -55,6 +61,16 @@ import java.util.Set;
     public void setProjects(Set<Project> projects) { this.projects = projects; }
     public Secretaria getSecretaria() { return secretaria; }
     public void setSecretaria(Secretaria secretaria) { this.secretaria = secretaria; }
+    @PrePersist
+    void prePersist() {
+        createdAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = Instant.now();
+    }
 
     @Override
     public boolean equals(Object o) {
