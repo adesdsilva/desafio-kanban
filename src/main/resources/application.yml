@@ -7,3 +7,6 @@ management:
     web:
       exposure:
         include: health,metrics,info
+
+server:
+  port: 8081

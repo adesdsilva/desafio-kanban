@@ -49,4 +49,3 @@ management:
   metrics:
     enable:
       all: true
-
