@@ -20,14 +20,30 @@ public class SecurityConfig {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
+    private static final String[] SWAGGER_WHITELIST = {
+            "/v3/api-docs/**",
+            "/v3/api-docs",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/swagger-ui/index.html",
+            "/webjars/**",
+            "/actuator/**",
+            "/auth/**",
+            "/api-docs/**",
+            "/swagger-ui-custom.html",
+            "/swagger-ui/**",
+            // Adicione aqui URLs para o console do DGS e o endpoint GraphQL
+            "/graphql",
+            "/graphiql"
+    };
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Permite acesso aos endpoints de autenticação e documentação sem token.
-                        .requestMatchers("/auth/**", "/swagger-ui-custom.html", "/swagger-ui/**",
-                                "/v3/api-docs/**", "/actuator/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -36,4 +52,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

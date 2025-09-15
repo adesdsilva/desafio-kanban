@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v5.17.14
+    container_name: my-swagger-ui
+    environment:
+      SWAGGER_JSON: /app/openapi.yaml
+    volumes:
+      - ./docs:/app
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kanban
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+  api:
+    build: .
+    depends_on:
+      - db
+    environment:
+      # Ativa o perfil 'docker' para as configurações de banco de dados
+      SPRING_PROFILES_ACTIVE: docker
+      # Sobrescreve a porta do servidor, garantindo que seja a 8080
+      SERVER_PORT: 8080
+    ports:
+      - 8080:8080
+
+volumes:
+  pgdata:
+

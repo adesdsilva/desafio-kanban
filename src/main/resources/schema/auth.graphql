@@ -1,0 +1,16 @@
+# --- Input / DTOs ---
+
+input AuthRequestDTO {
+    username: String!
+    password: String!
+}
+
+type AuthResponseDTO {
+    token: String!
+}
+
+# --- Queries & Mutations ---
+
+extend type Mutation {
+    login(request: AuthRequestDTO!): AuthResponseDTO
+}
