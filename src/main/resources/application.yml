@@ -16,6 +16,18 @@ logging:
       springframework: DEBUG
       springdoc: DEBUG
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui-custom.html
+    tags-sorter: alpha
+    operations-sorter: method
+    disable-swagger-default-url: true
+    urls:
+      - name: 'API'
+        url: /api-docs
+
 management:
   endpoints:
     web:

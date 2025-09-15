@@ -1,31 +1,34 @@
 package br.com.setecolinas.kanban_project.config;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.Components;
-import io.swagger.v3.oas.models.security.SecurityScheme;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 
 @Configuration
 public class OpenApiConfig {
 
+    private static final String SCHEME_NAME = "Bearer Authentication";
+
     @Bean
     public OpenAPI customOpenAPI() {
-        final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
-                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
+                .info(new Info()
+                                .title("Desafio Kanban API")
+                                .version("1.0")
+                                .description("Documentação da API Kanban")
+                )
+                .addSecurityItem(new SecurityRequirement().addList(SCHEME_NAME))
                 .components(new Components()
-                        .addSecuritySchemes(securitySchemeName,
+                        .addSecuritySchemes(SCHEME_NAME,
                                 new SecurityScheme()
-                                        .name(securitySchemeName)
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
-                                        .bearerFormat("JWT")))
-                .info(new Info()
-                        .title("Kanban API")
-                        .version("1.0")
-                        .description("Documentação da API do Desafio Kanban"));
+                                        .bearerFormat("JWT")
+                        )
+                );
     }
 }

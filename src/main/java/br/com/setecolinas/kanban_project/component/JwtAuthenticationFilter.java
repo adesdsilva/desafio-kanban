@@ -41,18 +41,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
+        if (authHeader != null && !authHeader.isBlank()) {
+            if (authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                if (jwtUtil.isTokenValid(token)) {
+                    String userId = jwtUtil.extractUserId(token);
 
-            if (jwtUtil.isTokenValid(token)) {
-                String userId = jwtUtil.extractUserId(token);
+                    var authToken = new UsernamePasswordAuthenticationToken(userId, null, null);
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
 
-                // Colocar userId no SecurityContext
-                var authToken = new UsernamePasswordAuthenticationToken(userId, null, null);
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-
-                // Colocar userId no MDC para logs estruturados
-                MDC.put("userId", userId);
+                    MDC.put("userId", userId);
+                }
             }
         }
 

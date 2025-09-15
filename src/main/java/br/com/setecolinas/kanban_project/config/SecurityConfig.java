@@ -33,7 +33,6 @@ public class SecurityConfig {
             "/api-docs/**",
             "/swagger-ui-custom.html",
             "/swagger-ui/**",
-            // Adicione aqui URLs para o console do DGS e o endpoint GraphQL
             "/graphql",
             "/graphiql"
     };
