@@ -27,38 +27,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NotNull HttpServletResponse response,
                                     @NotNull FilterChain filterChain) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
-
-        // 🚨 Ignorar endpoints públicos (Swagger, OpenAPI, Auth, Actuator)
-        if (path.contains("swagger")
-                || path.contains("api-docs")
-                || path.contains("webjars")
-                || path.startsWith("/auth")
-                || path.startsWith("/actuator")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String authHeader = request.getHeader("Authorization");
 
-        if (authHeader != null && !authHeader.isBlank()) {
-            if (authHeader.startsWith("Bearer ")) {
-                String token = authHeader.substring(7);
-                if (jwtUtil.isTokenValid(token)) {
-                    String userId = jwtUtil.extractUserId(token);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtUtil.isTokenValid(token)) {
+                String userId = jwtUtil.extractUserId(token);
 
-                    var authToken = new UsernamePasswordAuthenticationToken(userId, null, null);
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                var authentication = new UsernamePasswordAuthenticationToken(userId, null, null);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    MDC.put("userId", userId);
-                }
+                // Logging estruturado
+                MDC.put("userId", userId);
             }
         }
 
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // Sempre limpar o MDC
             MDC.remove("userId");
         }
     }

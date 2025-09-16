@@ -24,6 +24,8 @@ springdoc:
     tags-sorter: alpha
     operations-sorter: method
     disable-swagger-default-url: true
+    display-request-duration: true
+
     urls:
       - name: 'API'
         url: /api-docs

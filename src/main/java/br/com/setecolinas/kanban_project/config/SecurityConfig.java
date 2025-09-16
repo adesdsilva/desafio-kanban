@@ -20,19 +20,23 @@ public class SecurityConfig {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
     }
 
+    // 🔹 Endpoints públicos liberados
     private static final String[] SWAGGER_WHITELIST = {
+            // Swagger & OpenAPI
             "/v3/api-docs/**",
-            "/v3/api-docs",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/swagger-resources/**",
-            "/swagger-ui/index.html",
             "/webjars/**",
-            "/actuator/**",
-            "/auth/**",
             "/api-docs/**",
-            "/swagger-ui-custom.html",
-            "/swagger-ui/**",
+
+            // Actuator
+            "/actuator/**",
+
+            // Autenticação
+            "/auth/**",
+
+            // GraphQL
             "/graphql",
             "/graphiql"
     };
