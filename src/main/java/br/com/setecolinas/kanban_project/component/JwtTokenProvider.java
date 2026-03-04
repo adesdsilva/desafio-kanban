@@ -7,7 +7,11 @@ import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
 
-@Component
+/**
+ * @deprecated Use br.com.setecolinas.kanban_project.security.JwtTokenProvider instead
+ */
+//@Component("legacyJwtTokenProvider")
+@Deprecated
 public class JwtTokenProvider {
 
     private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
@@ -43,4 +47,3 @@ public class JwtTokenProvider {
         }
     }
 }
-

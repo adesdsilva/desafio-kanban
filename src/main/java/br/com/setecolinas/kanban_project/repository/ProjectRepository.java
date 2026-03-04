@@ -1,7 +1,7 @@
 package br.com.setecolinas.kanban_project.repository;
 
 import br.com.setecolinas.kanban_project.model.Project;
-import br.com.setecolinas.kanban_project.model.ProjectStatus;
+import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

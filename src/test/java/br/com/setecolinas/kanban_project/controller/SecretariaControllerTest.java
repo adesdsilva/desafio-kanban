@@ -85,7 +85,7 @@ class SecretariaControllerUnitaryTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().getTotalElements());
-        assertEquals(responseDTO, response.getBody().getContent().getFirst());
+        assertEquals(responseDTO, response.getBody().getContent().get(0));
         verify(service, times(1)).findAll(pageable);
     }
 
@@ -105,7 +105,7 @@ class SecretariaControllerUnitaryTest {
     }
 
     @Test
-    @DisplayName("Deve deletar uma secretaria e retornar 204 No Content")
+    @DisplayName("Deve apagar uma secretaria e retornar 204 No Content")
     void delete_shouldReturn204NoContent() {
         doNothing().when(service).delete(1L);
 

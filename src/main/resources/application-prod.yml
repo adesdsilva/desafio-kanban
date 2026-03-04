@@ -1,0 +1,66 @@
+# 🔴 Configurações específicas para PROD
+# Arquivo: application-prod.yml
+# Ativar com: -Dspring.profiles.active=prod
+
+spring:
+  application:
+    name: kanban-project-saas-prod
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:5432/kanban_prod
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+      auto-commit: false
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+    open-in-view: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  compression:
+    enabled: true
+    min-response-size: 1024
+  http2:
+    enabled: true
+
+app:
+  environment: prod
+  debug: false
+
+logging:
+  level:
+    root: WARN
+    br.com.setecolinas.kanban_project: WARN
+  file:
+    name: logs/kanban-prod.log
+    max-size: 100MB
+    max-history: 30
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+

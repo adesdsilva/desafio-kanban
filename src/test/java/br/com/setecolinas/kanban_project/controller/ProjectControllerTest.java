@@ -2,7 +2,7 @@ package br.com.setecolinas.kanban_project.controller;
 
 import br.com.setecolinas.kanban_project.dto.ProjectRequestDTO;
 import br.com.setecolinas.kanban_project.dto.ProjectResponseDTO;
-import br.com.setecolinas.kanban_project.model.ProjectStatus;
+import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
 import br.com.setecolinas.kanban_project.service.ProjectService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -91,7 +91,7 @@ class ProjectControllerUnitaryTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().getTotalElements());
-        assertEquals(responseDTO, response.getBody().getContent().getFirst());
+        assertEquals(responseDTO, response.getBody().getContent().get(0));
         verify(service, times(1)).findAll(pageable);
     }
 
@@ -130,7 +130,7 @@ class ProjectControllerUnitaryTest {
     }
 
     @Test
-    @DisplayName("Deve deletar um projeto e retornar 204 No Content")
+    @DisplayName("Deve apagar um projeto e retornar 204 No Content")
     void delete_shouldReturn204NoContent() {
         doNothing().when(service).delete(1L);
 

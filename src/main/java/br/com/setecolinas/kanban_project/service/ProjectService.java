@@ -6,7 +6,7 @@ import br.com.setecolinas.kanban_project.exceptions.BusinessException;
 import br.com.setecolinas.kanban_project.exceptions.NotFoundException;
 import br.com.setecolinas.kanban_project.mapper.ProjectMapper;
 import br.com.setecolinas.kanban_project.model.Project;
-import br.com.setecolinas.kanban_project.model.ProjectStatus;
+import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
 import br.com.setecolinas.kanban_project.repository.ProjectRepository;
 import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
 import org.slf4j.Logger;

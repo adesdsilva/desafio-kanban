@@ -1,20 +1,32 @@
-# Configuração Padrão
+# 🌍 Configuração Padrão (Multi-Environment)
 spring:
   profiles:
     active: dev
+  application:
+    name: kanban-project-saas
+  liquibase:
+    enabled: false
 
 server:
   port: 8081
 
+# JWT Configuration (default)
+jwt:
+  secret: ${JWT_SECRET:mySuperSecretKeyThatIsAtLeast32CharactersLongForHS256}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+# App Configuration
+app:
+  name: Kanban SaaS
+  version: 1.0.0
+  environment: ${APP_ENV:dev}
+
 logging:
   level:
-    org:
-      hibernate:
-        SQL: DEBUG
-        type:
-          descriptor: TRACE
-      springframework: DEBUG
-      springdoc: DEBUG
+    root: INFO
+    br.com.setecolinas.kanban_project: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.springframework.security: DEBUG
 
 springdoc:
   api-docs:
@@ -42,20 +54,25 @@ management:
     enable:
       all: true
 
+
 ---
-# Configuração para o Perfil 'dev' (Ambiente Local)
+# ========================================
+# 🔵 AMBIENTE: DEV (Desenvolvimento Local)
+# ========================================
 spring:
   config:
     activate:
       on-profile: dev
+  application:
+    name: kanban-project-saas-dev
   datasource:
-    url: jdbc:postgresql://localhost:5432/kanban
+    url: jdbc:postgresql://localhost:5432/kanban_dev
     username: postgres
     password: admin
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
+      maximum-pool-size: 10
+      minimum-idle: 2
       idle-timeout: 30000
       max-lifetime: 1800000
       connection-timeout: 30000
@@ -67,37 +84,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-    show-sql: true
-
-  sql:
-    init:
-      mode: always
-
----
-# Configuração para o Perfil 'docker' (Contêiner Docker)
-spring:
-  config:
-    activate:
-      on-profile: docker
-  datasource:
-    url: jdbc:postgresql://db:5432/kanban
-    username: postgres
-    password: admin
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 30000
-      max-lifetime: 1800000
-      connection-timeout: 30000
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        show_sql: true
     show-sql: true
 
   sql:
@@ -105,4 +92,203 @@ spring:
       mode: always
 
 server:
+  port: 8081
+  servlet:
+    context-path: /api
+
+# JWT DEV (less secure, apenas para desenvolvimento)
+jwt:
+  secret: ${JWT_SECRET:dev-secret-key-only-for-development-32chars}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+# App Config DEV
+app:
+  environment: dev
+  debug: true
+  cors-allowed-origins: http://localhost:4200,http://localhost:3000,http://localhost:8081
+
+logging:
+  level:
+    root: INFO
+    br.com.setecolinas.kanban_project: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# ========================================
+# 🟡 AMBIENTE: HOMOL (Homologação/Staging)
+# ========================================
+spring:
+  config:
+    activate:
+      on-profile: homol
+  application:
+    name: kanban-project-saas-homol
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/kanban_homol
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 30000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+    show-sql: false
+
+server:
   port: 8080
+  servlet:
+    context-path: /api
+
+# JWT HOMOL (staging - use variáveis de ambiente)
+jwt:
+  secret: ${JWT_SECRET:must-set-jwt-secret-in-production}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+# App Config HOMOL
+app:
+  environment: homol
+  debug: false
+  cors-allowed-origins: https://homol.kanban-saas.com,https://api-homol.kanban-saas.com
+
+logging:
+  level:
+    root: WARN
+    br.com.setecolinas.kanban_project: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/kanban-homol.log
+    max-size: 10MB
+    max-history: 10
+
+---
+# ========================================
+# 🔴 AMBIENTE: PROD (Produção)
+# ========================================
+spring:
+  config:
+    activate:
+      on-profile: prod
+  application:
+    name: kanban-project-saas-prod
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:5432/kanban_prod
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 30
+      minimum-idle: 10
+      idle-timeout: 60000
+      max-lifetime: 1800000
+      connection-timeout: 30000
+      auto-commit: false
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        jdbc:
+          batch_size: 20
+          fetch_size: 50
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+    open-in-view: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  compression:
+    enabled: true
+    min-response-size: 1024
+  http2:
+    enabled: true
+
+# JWT PROD (OBRIGATÓRIO usar variáveis de ambiente)
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+# App Config PROD
+app:
+  environment: prod
+  debug: false
+  cors-allowed-origins: https://kanban-saas.com,https://api.kanban-saas.com
+
+logging:
+  level:
+    root: WARN
+    br.com.setecolinas.kanban_project: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/kanban-prod.log
+    max-size: 100MB
+    max-history: 30
+
+---
+# ========================================
+# 🐳 AMBIENTE: DOCKER (Container)
+# ========================================
+spring:
+  config:
+    activate:
+      on-profile: docker
+  application:
+    name: kanban-project-saas-docker
+  datasource:
+    url: jdbc:postgresql://db:5432/kanban_docker
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+    show-sql: false
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+jwt:
+  secret: ${JWT_SECRET:docker-dev-secret-key-32chars-long}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+app:
+  environment: docker
+  debug: true
+  cors-allowed-origins: http://localhost:4200,http://localhost:3000
+
+logging:
+  level:
+    root: INFO
+    br.com.setecolinas.kanban_project: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

@@ -2,7 +2,7 @@ package br.com.setecolinas.kanban_project.controller;
 
 import br.com.setecolinas.kanban_project.dto.ProjectRequestDTO;
 import br.com.setecolinas.kanban_project.dto.ProjectResponseDTO;
-import br.com.setecolinas.kanban_project.model.ProjectStatus;
+import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
 import br.com.setecolinas.kanban_project.service.ProjectService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;

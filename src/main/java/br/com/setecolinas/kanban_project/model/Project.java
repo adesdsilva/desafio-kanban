@@ -1,5 +1,6 @@
 package br.com.setecolinas.kanban_project.model;
 
+import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -11,7 +12,9 @@ import java.util.Set;
 @Table(
         name = "project",
         indexes = {
-                @Index(name = "idx_project_name", columnList = "name")
+                @Index(name = "idx_project_name", columnList = "name"),
+                @Index(name = "idx_project_tenant", columnList = "tenant_id"),
+                @Index(name = "idx_project_organization", columnList = "organization_id")
         }
 )
 public class Project {
@@ -34,6 +37,14 @@ public class Project {
 
     private Integer daysDelay;
     private Double percentTimeRemaining;
+
+    // Multi-tenant
+    @Column(nullable = false)
+    private String tenantId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
 
     // auditoria
     private Instant createdAt;
@@ -77,6 +88,12 @@ public class Project {
     public void setPercentTimeRemaining(Double percentTimeRemaining) { this.percentTimeRemaining = percentTimeRemaining; }
     public Set<Responsible> getResponsibles() { return responsibles; }
     public void setResponsibles(Set<Responsible> responsibles) { this.responsibles = responsibles; }
+
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+
+    public Organization getOrganization() { return organization; }
+    public void setOrganization(Organization organization) { this.organization = organization; }
 
     @PrePersist
     void prePersist() { createdAt = Instant.now(); updatedAt = Instant.now(); }

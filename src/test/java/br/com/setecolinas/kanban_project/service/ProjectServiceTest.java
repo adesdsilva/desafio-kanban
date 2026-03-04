@@ -2,14 +2,12 @@ package br.com.setecolinas.kanban_project.service;
 
 import br.com.setecolinas.kanban_project.dto.ProjectRequestDTO;
 import br.com.setecolinas.kanban_project.dto.ProjectResponseDTO;
-import br.com.setecolinas.kanban_project.exceptions.BusinessException;
 import br.com.setecolinas.kanban_project.exceptions.NotFoundException;
 import br.com.setecolinas.kanban_project.model.Project;
-import br.com.setecolinas.kanban_project.model.ProjectStatus;
+import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
 import br.com.setecolinas.kanban_project.model.Responsible;
 import br.com.setecolinas.kanban_project.repository.ProjectRepository;
 import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
-import br.com.setecolinas.kanban_project.service.ProjectService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

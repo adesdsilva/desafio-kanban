@@ -13,7 +13,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component
+/**
+ * @deprecated Use br.com.setecolinas.kanban_project.security.JwtAuthenticationFilter instead
+ */
+//@Component("legacyJwtAuthenticationFilter")
+@Deprecated
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;

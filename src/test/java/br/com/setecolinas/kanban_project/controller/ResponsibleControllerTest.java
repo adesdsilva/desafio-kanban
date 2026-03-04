@@ -74,7 +74,7 @@ class ResponsibleControllerUnitaryTest {
 
     @Test
     @DisplayName("Deve retornar página de responsáveis com ou sem busca")
-    void findAll_shouldReturnPageOfResponsibles() {
+    void findAll_shouldReturnPageOfResponsible() {
         Pageable pageable = PageRequest.of(0, 10);
         Page<ResponsibleResponseDTO> page = new PageImpl<>(List.of(responseDTO), pageable, 1);
         when(service.findAll(eq(null), any(Pageable.class))).thenReturn(page);
@@ -85,7 +85,7 @@ class ResponsibleControllerUnitaryTest {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(1, response.getBody().getTotalElements());
-        assertEquals(responseDTO, response.getBody().getContent().getFirst());
+        assertEquals(responseDTO, response.getBody().getContent().get(0));
         verify(service, times(1)).findAll(eq(null), any(Pageable.class));
     }
 
@@ -105,7 +105,7 @@ class ResponsibleControllerUnitaryTest {
     }
 
     @Test
-    @DisplayName("Deve deletar um responsável e retornar 204 No Content")
+    @DisplayName("Deve apagar um responsável e retornar 204 No Content")
     void delete_shouldReturn204NoContent() {
         doNothing().when(service).delete(1L);
 
