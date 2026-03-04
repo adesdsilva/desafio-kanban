@@ -7,6 +7,7 @@ import br.com.setecolinas.kanban_project.model.Responsible;
 import br.com.setecolinas.kanban_project.model.Secretaria;
 import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
 import br.com.setecolinas.kanban_project.repository.SecretariaRepository;
+import br.com.setecolinas.kanban_project.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -17,7 +18,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 @Service
@@ -55,7 +55,7 @@ public class ResponsibleService {
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return "system";
         Object principal = auth.getPrincipal();
-        if (principal instanceof String) return (String) principal;
+        if (principal instanceof String string) return string;
         return auth.getName();
     }
 
@@ -63,7 +63,8 @@ public class ResponsibleService {
     public ResponsibleResponseDTO findById(Long id) {
         return withUserContext(() -> {
             log.info("action=findById.started id={}", id);
-            Responsible r = repo.findById(id)
+            String tenantId = TenantContext.getCurrentTenantId();
+            Responsible r = repo.findByIdAndTenantId(id, tenantId)
                     .orElseThrow(() -> new NotFoundException("Responsible not found"));
             Long secId = r.getSecretaria() != null ? r.getSecretaria().getId() : null;
             ResponsibleResponseDTO dto = new ResponsibleResponseDTO(r.getId(), r.getName(), r.getEmail(), r.getRole(), secId);
@@ -78,10 +79,16 @@ public class ResponsibleService {
         return withUserContext(() -> {
             log.info("action=create.started name={}", dto.name());
 
+            String tenantId = TenantContext.getCurrentTenantId();
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            var user = (br.com.setecolinas.kanban_project.model.User) auth.getPrincipal();
+
             Responsible r = new Responsible(dto.name(), dto.email(), dto.role());
+            r.setTenantId(tenantId);
+            r.setOrganization(user.getOrganization());
 
             if (dto.secId() != null) {
-                Secretaria s = secRepo.findById(dto.secId())
+                Secretaria s = secRepo.findByIdAndTenantId(dto.secId(), tenantId)
                         .orElseThrow(() -> new NotFoundException("Secretaria not found"));
                 r.setSecretaria(s);
             }
@@ -99,9 +106,10 @@ public class ResponsibleService {
         return withUserContext(() -> {
             log.info("action=findAll.started search={} page={} size={}", search, pageable.getPageNumber(), pageable.getPageSize());
 
+            String tenantId = TenantContext.getCurrentTenantId();
             Page<Responsible> pageResult = (search == null || search.isBlank())
-                    ? repo.findAll(pageable)
-                    : repo.findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(search, search, pageable);
+                    ? repo.findByTenantId(tenantId, pageable)
+                    : repo.findByTenantIdAndNameContainingIgnoreCaseOrEmailContainingIgnoreCase(tenantId, search, search, pageable);
 
             Page<ResponsibleResponseDTO> out = pageResult.map(r ->
                     new ResponsibleResponseDTO(r.getId(), r.getName(), r.getEmail(), r.getRole(),
@@ -120,7 +128,8 @@ public class ResponsibleService {
     public ResponsibleResponseDTO update(Long id, ResponsibleRequestDTO dto) {
         return withUserContext(() -> {
             log.info("action=update.started id={}", id);
-            Responsible r = repo.findById(id)
+            String tenantId = TenantContext.getCurrentTenantId();
+            Responsible r = repo.findByIdAndTenantId(id, tenantId)
                     .orElseThrow(() -> new NotFoundException("Responsible not found"));
 
             r.setName(dto.name());
@@ -128,7 +137,7 @@ public class ResponsibleService {
             r.setRole(dto.role());
 
             if (dto.secId() != null) {
-                Secretaria s = secRepo.findById(dto.secId())
+                Secretaria s = secRepo.findByIdAndTenantId(dto.secId(), tenantId)
                         .orElseThrow(() -> new NotFoundException("Secretaria not found"));
                 r.setSecretaria(s);
             } else {
@@ -147,10 +156,10 @@ public class ResponsibleService {
     public void delete(Long id) {
         withUserContext(() -> {
             log.info("action=delete.started id={}", id);
-            if (!repo.existsById(id)) {
-                throw new NotFoundException("Responsible not found");
-            }
-            repo.deleteById(id);
+            String tenantId = TenantContext.getCurrentTenantId();
+            Responsible r = repo.findByIdAndTenantId(id, tenantId)
+                    .orElseThrow(() -> new NotFoundException("Responsible not found"));
+            repo.delete(r);
             log.info("action=delete.finished id={}", id);
         });
     }

@@ -9,6 +9,7 @@ import br.com.setecolinas.kanban_project.model.Project;
 import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
 import br.com.setecolinas.kanban_project.repository.ProjectRepository;
 import br.com.setecolinas.kanban_project.repository.ResponsibleRepository;
+import br.com.setecolinas.kanban_project.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -59,7 +60,7 @@ public class ProjectService {
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return "system";
         final var principal = auth.getPrincipal();
-        if (principal instanceof String) return (String) principal;
+        if (principal instanceof String) return principal.toString();
         return auth.getName();
     }
 
@@ -68,7 +69,8 @@ public class ProjectService {
     public ProjectResponseDTO findById(Long id) {
         return withUserContext(() -> {
             log.info("action=findById.started id={}", id);
-            ProjectResponseDTO dto = repo.findById(id)
+            String tenantId = TenantContext.getCurrentTenantId();
+            ProjectResponseDTO dto = repo.findByIdAndTenantId(id, tenantId)
                     .map(ProjectMapper::toResponse)
                     .orElseThrow(() -> new NotFoundException("Project not found"));
             log.info("action=findById.finished id={}", id);
@@ -82,12 +84,18 @@ public class ProjectService {
         return withUserContext(() -> {
             log.info("action=create.started name={}", dto.name());
 
+            String tenantId = TenantContext.getCurrentTenantId();
+            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            var user = (br.com.setecolinas.kanban_project.model.User) auth.getPrincipal();
+
             Project p = new Project(dto.name());
+            p.setTenantId(tenantId);
+            p.setOrganization(user.getOrganization());
             ProjectMapper.apply(p, dto);
 
             if (dto.responsibleIds() != null) {
                 dto.responsibleIds().forEach(id ->
-                        respRepo.findById(id).ifPresent(p.getResponsibles()::add));
+                        respRepo.findByIdAndTenantId(id, tenantId).ifPresent(p.getResponsibles()::add));
             }
 
             recalc(p);
@@ -102,14 +110,14 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public Page<ProjectResponseDTO> findAll(Pageable pageable) {
         return withUserContext(() -> {
-            log.info("action=findAll.started page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
+            String tenantId = TenantContext.getCurrentTenantId();
+            log.info("action=findAll.started tenantId={}", tenantId);
 
-            Page<ProjectResponseDTO> out = repo.findAll(pageable)
-                    .map(ProjectMapper::toResponse);
+            Page<Project> page = repo.findByTenantId(tenantId, pageable);
+            Page<ProjectResponseDTO> result = page.map(ProjectMapper::toResponse);
 
-            log.info("action=findAll.finished totalElements={} totalPages={}",
-                    out.getTotalElements(), out.getTotalPages());
-            return out;
+            log.info("action=findAll.finished count={}", result.getTotalElements());
+            return result;
         });
     }
 
@@ -118,8 +126,8 @@ public class ProjectService {
     public ProjectResponseDTO update(Long id, ProjectRequestDTO dto) {
         return withUserContext(() -> {
             log.info("action=update.started id={}", id);
-
-            Project p = repo.findById(id)
+            String tenantId = TenantContext.getCurrentTenantId();
+            Project p = repo.findByIdAndTenantId(id, tenantId)
                     .orElseThrow(() -> new NotFoundException("Project not found"));
 
             ProjectMapper.apply(p, dto);
@@ -127,7 +135,7 @@ public class ProjectService {
             if (dto.responsibleIds() != null) {
                 p.getResponsibles().clear();
                 dto.responsibleIds().forEach(rid ->
-                        respRepo.findById(rid).ifPresent(p.getResponsibles()::add));
+                        respRepo.findByIdAndTenantId(rid, tenantId).ifPresent(p.getResponsibles()::add));
             }
 
             recalc(p);
@@ -143,12 +151,10 @@ public class ProjectService {
     public void delete(Long id) {
         withUserContext(() -> {
             log.info("action=delete.started id={}", id);
-
-            if (!repo.existsById(id)) {
-                throw new NotFoundException("Project not found");
-            }
-
-            repo.deleteById(id);
+            String tenantId = TenantContext.getCurrentTenantId();
+            Project p = repo.findByIdAndTenantId(id, tenantId)
+                    .orElseThrow(() -> new NotFoundException("Project not found"));
+            repo.delete(p);
             log.info("action=delete.finished id={}", id);
         });
     }
@@ -209,8 +215,8 @@ public class ProjectService {
     public ProjectResponseDTO transition(Long id, ProjectStatus target) {
         return withUserContext(() -> {
             log.info("action=transition.started id={} target={}", id, target);
-
-            Project p = repo.findById(id)
+            String tenantId = TenantContext.getCurrentTenantId();
+            Project p = repo.findByIdAndTenantId(id, tenantId)
                     .orElseThrow(() -> new NotFoundException("Project not found"));
 
             LocalDate today = LocalDate.now();

@@ -5,6 +5,7 @@ import br.com.setecolinas.kanban_project.dto.SecretariaResponseDTO;
 import br.com.setecolinas.kanban_project.exceptions.NotFoundException;
 import br.com.setecolinas.kanban_project.model.Secretaria;
 import br.com.setecolinas.kanban_project.repository.SecretariaRepository;
+import br.com.setecolinas.kanban_project.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -12,10 +13,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.function.Supplier;
 
 @Service
@@ -48,10 +49,10 @@ public class SecretariaService {
     }
 
     private String getCurrentUserId() {
-        var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) return "system";
         Object principal = auth.getPrincipal();
-        if (principal instanceof String) return (String) principal;
+        if (principal instanceof String string) return string;
         return auth.getName();
     }
 
@@ -59,7 +60,8 @@ public class SecretariaService {
     public SecretariaResponseDTO findById(Long id) {
         return withUserContext(() -> {
             log.info("action=findById.started id={}", id);
-            Secretaria s = repo.findById(id)
+            String tenantId = TenantContext.getCurrentTenantId();
+            Secretaria s = repo.findByIdAndTenantId(id, tenantId)
                     .orElseThrow(() -> new NotFoundException("Secretaria not found"));
             log.info("action=findById.finished id={}", id);
             return new SecretariaResponseDTO(s.getId(), s.getNome(), s.getDescricao());
@@ -71,7 +73,13 @@ public class SecretariaService {
     public SecretariaResponseDTO create(SecretariaRequestDTO dto) {
         return withUserContext(() -> {
             log.info("action=create.started nome={}", dto.nome());
+            String tenantId = TenantContext.getCurrentTenantId();
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            var user = (br.com.setecolinas.kanban_project.model.User) auth.getPrincipal();
+
             Secretaria s = new Secretaria(dto.nome(), dto.descricao());
+            s.setTenantId(tenantId);
+            s.setOrganization(user.getOrganization());
             Secretaria saved = repo.save(s);
             log.info("action=create.finished id={}", saved.getId());
             return new SecretariaResponseDTO(saved.getId(), saved.getNome(), saved.getDescricao());
@@ -83,8 +91,9 @@ public class SecretariaService {
     public Page<SecretariaResponseDTO> findAll(Pageable pageable) {
         return withUserContext(() -> {
             log.info("action=findAll.started page={} size={}", pageable.getPageNumber(), pageable.getPageSize());
+            String tenantId = TenantContext.getCurrentTenantId();
 
-            Page<SecretariaResponseDTO> out = repo.findAll(pageable)
+            Page<SecretariaResponseDTO> out = repo.findByTenantId(tenantId, pageable)
                     .map(s -> new SecretariaResponseDTO(s.getId(), s.getNome(), s.getDescricao()));
 
             log.info("action=findAll.finished totalElements={} totalPages={}",
@@ -99,7 +108,8 @@ public class SecretariaService {
     public SecretariaResponseDTO update(Long id, SecretariaRequestDTO dto) {
         return withUserContext(() -> {
             log.info("action=update.started id={}", id);
-            Secretaria s = repo.findById(id)
+            String tenantId = TenantContext.getCurrentTenantId();
+            Secretaria s = repo.findByIdAndTenantId(id, tenantId)
                     .orElseThrow(() -> new NotFoundException("Secretaria not found"));
             s.setNome(dto.nome());
             s.setDescricao(dto.descricao());
@@ -114,10 +124,10 @@ public class SecretariaService {
     public void delete(Long id) {
         withUserContext(() -> {
             log.info("action=delete.started id={}", id);
-            if (!repo.existsById(id)) {
-                throw new NotFoundException("Secretaria not found");
-            }
-            repo.deleteById(id);
+            String tenantId = TenantContext.getCurrentTenantId();
+            Secretaria s = repo.findByIdAndTenantId(id, tenantId)
+                    .orElseThrow(() -> new NotFoundException("Secretaria not found"));
+            repo.delete(s);
             log.info("action=delete.finished id={}", id);
         });
     }

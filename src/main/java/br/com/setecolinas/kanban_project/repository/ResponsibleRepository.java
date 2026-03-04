@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface ResponsibleRepository extends JpaRepository<Responsible, Long> {
-    Optional<Responsible> findByEmail(String email);
-    boolean existsByEmail(String email);
-    Page<Responsible> findByNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String name, String email, Pageable pageable);
-
+    // Multi-tenant methods
+    Page<Responsible> findByTenantId(String tenantId, Pageable pageable);
+    Optional<Responsible> findByIdAndTenantId(Long id, String tenantId);
+    Page<Responsible> findByTenantIdAndNameContainingIgnoreCaseOrEmailContainingIgnoreCase(String tenantId, String name, String email, Pageable pageable);
 }

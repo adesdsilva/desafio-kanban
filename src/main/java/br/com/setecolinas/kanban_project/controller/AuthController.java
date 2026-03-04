@@ -17,11 +17,15 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "Autenticação", description = "Endpoints para autenticação, registro e geração de token JWT")
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
 @Slf4j
 public class AuthController {
 
     private final UserService userService;
+
+    // Explicit constructor to ensure it's generated
+    public AuthController(UserService userService) {
+        this.userService = userService;
+    }
 
     @Operation(summary = "Registrar novo usuário", description = "Cria novo usuário e organização, retorna token JWT")
     @PostMapping("/register")

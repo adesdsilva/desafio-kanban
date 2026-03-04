@@ -11,7 +11,8 @@ import java.util.Set;
 @Table(
         name = "secretaria",
         indexes = {
-                @Index(name = "idx_secretaria_nome", columnList = "nome")
+                @Index(name = "idx_secretaria_nome", columnList = "nome"),
+                @Index(name = "idx_secretaria_tenant", columnList = "tenant_id")
         }
 )
 public class Secretaria {
@@ -24,6 +25,14 @@ public class Secretaria {
     private String nome;
 
     private String descricao;
+
+    // Multi-tenant
+    @Column(nullable = false)
+    private String tenantId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
 
     @OneToMany(mappedBy = "secretaria", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Responsible> responsaveis = new HashSet<>();
@@ -49,6 +58,10 @@ public class Secretaria {
     public void setDescricao(String descricao) { this.descricao = descricao; }
     public Set<Responsible> getResponsaveis() { return responsaveis; }
     public void setResponsaveis(Set<Responsible> responsaveis) { this.responsaveis = responsaveis; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public Organization getOrganization() { return organization; }
+    public void setOrganization(Organization organization) { this.organization = organization; }
 
     @PrePersist
     void prePersist() {

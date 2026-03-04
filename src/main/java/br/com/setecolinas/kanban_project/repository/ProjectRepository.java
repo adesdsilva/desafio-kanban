@@ -1,11 +1,14 @@
 package br.com.setecolinas.kanban_project.repository;
 
 import br.com.setecolinas.kanban_project.model.Project;
-import br.com.setecolinas.kanban_project.model.enums.ProjectStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
+import java.util.Optional;
 
 public interface ProjectRepository extends JpaRepository<Project, Long> {
-    List<Project> findByStatus(ProjectStatus status);
+    // Multi-tenant methods
+    Page<Project> findByTenantId(String tenantId, Pageable pageable);
+    Optional<Project> findByIdAndTenantId(Long id, String tenantId);
 }

@@ -13,7 +13,8 @@ import java.util.Set;
         uniqueConstraints = @UniqueConstraint(columnNames = "email"),
         indexes = {
                 @Index(name = "idx_responsible_email", columnList = "email"),
-                @Index(name = "idx_responsible_name", columnList = "name")
+                @Index(name = "idx_responsible_name", columnList = "name"),
+                @Index(name = "idx_responsible_tenant", columnList = "tenant_id")
         }
 )
 public class Responsible {
@@ -29,6 +30,14 @@ public class Responsible {
     private String email;
 
     private String role;
+
+    // Multi-tenant
+    @Column(nullable = false)
+    private String tenantId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
 
     @ManyToMany(mappedBy = "responsibles")
     private Set<Project> projects = new HashSet<>();
@@ -64,6 +73,10 @@ public class Responsible {
     public void setProjects(Set<Project> projects) { this.projects = projects; }
     public Secretaria getSecretaria() { return secretaria; }
     public void setSecretaria(Secretaria secretaria) { this.secretaria = secretaria; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public Organization getOrganization() { return organization; }
+    public void setOrganization(Organization organization) { this.organization = organization; }
     @PrePersist
     void prePersist() {
         createdAt = Instant.now();
